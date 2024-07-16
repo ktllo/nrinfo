@@ -6,7 +6,7 @@ import org.pircbotx.hooks.Event;
 
 @IrcController
 public class GenericFunctionController {
-    @Command(name="ping")
+    @Command("ping")
     public void ping(Event event){
         event.respond("pong");
     }

@@ -23,7 +23,7 @@ public class TflStatusController {
     @Autowired
     private TflLineStatusService tflLineStatusService;
 
-    @Command(name="lustatus")
+    @Command("lustatus")
     public void getTflStatus(GenericMessageEvent event){
         String[] tokens = event.getMessage().split(" ");
         logger.debug("We have {} tokens", tokens.length);
@@ -34,11 +34,5 @@ public class TflStatusController {
             //Return detailed responses
 
         }
-    }
-
-    @Command(name="ping")
-    public void ping(GenericMessageEvent event){
-        logger.info("ping called.");
-        event.respond("pong");
     }
 }
