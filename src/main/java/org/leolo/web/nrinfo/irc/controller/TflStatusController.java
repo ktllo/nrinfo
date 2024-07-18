@@ -6,6 +6,7 @@ import org.leolo.web.nrinfo.model.tfl.LineStatus;
 import org.leolo.web.nrinfo.service.TflLineStatusService;
 import org.pircbotx.hooks.Event;
 import org.pircbotx.hooks.events.MessageEvent;
+import org.pircbotx.hooks.events.PrivateMessageEvent;
 import org.pircbotx.hooks.types.GenericMessageEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,15 +25,12 @@ public class TflStatusController {
     private TflLineStatusService tflLineStatusService;
 
     @Command("lustatus")
-    public void getTflStatus(GenericMessageEvent event){
-        String[] tokens = event.getMessage().split(" ");
-        logger.debug("We have {} tokens", tokens.length);
-        Map<String, List<LineStatus>> statusMap = tflLineStatusService.getLineStatusMap();
-        if(tokens.length == 1){
-            //Return simple responses
-        } else  {
-            //Return detailed responses
+    public void getTflStatus(PrivateMessageEvent event){
+        logger.debug("lustatus.private called");
+    }
 
-        }
+    @Command("lustatus")
+    public void getTflStatus(MessageEvent event){
+        logger.debug("lustatus.public called");
     }
 }
