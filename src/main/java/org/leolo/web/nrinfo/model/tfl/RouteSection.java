@@ -21,5 +21,23 @@ public class RouteSection {
     private String lineString;
 
     @Getter
+    @Setter
+    private String routeDescription;
+
+    @Getter
     private List<String> stopPoints = new Vector<>();
+
+    public String getFrom() {
+        if(stopPoints.size()==0)
+            return null;
+        return stopPoints.get(0);
+    }
+
+    public String getTo() {
+        if(stopPoints.size()==0)
+            return null;
+        return stopPoints.get(stopPoints.size()-1);
+    }
+
+
 }

@@ -1,5 +1,6 @@
 package org.leolo.web.nrinfo.irc;
 
+import lombok.Getter;
 import org.leolo.web.nrinfo.irc.annotation.Command;
 import org.leolo.web.nrinfo.irc.annotation.IrcController;
 import org.leolo.web.nrinfo.service.IrcConfigurationService;
@@ -31,6 +32,7 @@ import java.util.*;
 public class IrcService extends ListenerAdapter {
 
     private Logger logger = LoggerFactory.getLogger(IrcService.class);
+    @Getter
     private ApplicationContext applicationContext;
     private PircBotX bot;
     private IrcConfigurationService ircConfigurationService;

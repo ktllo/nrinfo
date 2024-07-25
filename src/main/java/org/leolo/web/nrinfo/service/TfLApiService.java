@@ -14,7 +14,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.json.JSONArray;
 
+import javax.sql.DataSource;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -30,6 +35,9 @@ public class TfLApiService {
 
     @Autowired
     IrcService ircService;
+
+    @Autowired
+    private DataSource dataSource;
 
     public List<ServiceMode> getServiceMode() throws IOException {
         String requestUrl = "https://api.tfl.gov.uk/Line/Meta/Modes?app_key=%s";
@@ -180,5 +188,24 @@ public class TfLApiService {
 
         }
         return statusMap;
+    }
+
+    public String getLineName(String id) {
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement ps = connection.prepareStatement(
+                        "SELECT line_name FROM tfl_line WHERE line_id = ?"
+                )
+        ) {
+            ps.setString(1, id);
+            try(ResultSet rs = ps.executeQuery()){
+                if (rs.next()){
+                    return rs.getString(1);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Unable to get line name for id {} : {}", id, e.getMessage(), e);
+        }
+        return null;
     }
 }

@@ -18,5 +18,9 @@ public class Line {
     private String lineName;
 
     @Getter
+    @Setter
+    private ServiceMode mode;
+
+    @Getter
     private List<RouteSection> routeSections = new Vector<>();
 }
