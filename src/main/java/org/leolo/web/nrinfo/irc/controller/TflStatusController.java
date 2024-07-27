@@ -91,7 +91,7 @@ public class TflStatusController {
             maxItems = 2;
         }
         logger.debug("1space:{}, substr:{}", event.getMessage().indexOf(" "), event.getMessage().substring(event.getMessage().indexOf(" ")));
-        List<String> ids = tflLineService.getLineIdsByPartialLineName(tokens[1]).stream().filter(
+        List<String> ids = tflLineService.getLineIdsByPartialLineName(event.getMessage().substring(event.getMessage().indexOf(" "))).stream().filter(
                 id -> {
                     if (id.equalsIgnoreCase("bus") || id.equalsIgnoreCase("national-rail"))
                         return false;
@@ -103,7 +103,7 @@ public class TflStatusController {
         } else if (ids.size()<=maxItems) {
             handleShowDetails(event, ids);
         } else {
-            ids = tflLineService.getLineIdsByLineName(tokens[1]).stream().filter(
+            ids = tflLineService.getLineIdsByLineName(event.getMessage().substring(event.getMessage().indexOf(" "))).stream().filter(
                     id -> {
                         if (id.equalsIgnoreCase("bus") || id.equalsIgnoreCase("national-rail"))
                             return false;
