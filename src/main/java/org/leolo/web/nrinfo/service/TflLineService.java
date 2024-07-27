@@ -40,6 +40,25 @@ public class TflLineService {
         }
         return lines;
     }
+    public List<String> getLineIdsByLineName(String name){
+        Vector<String> lines = new Vector<>();
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement ps = connection.prepareStatement(
+                        "SELECT line_id FROM tfl_line WHERE line_name = ?"
+                )
+        ) {
+            ps.setString(1, name);
+            try(ResultSet rs = ps.executeQuery()){
+                while(rs.next()){
+                    lines.add(rs.getString("line_id"));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Unable to find lines : {}", e.getMessage(), e);
+        }
+        return lines;
+    }
 
     public String getLineNameById(String lineId) {
         try(

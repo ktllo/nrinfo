@@ -203,6 +203,9 @@ public class IrcService extends ListenerAdapter {
     public void sendMessage(String message) {
         //TODO: use channel name in config
         if(bot!=null && bot.isConnected()) {
+            if (bot.getState()== PircBotX.State.DISCONNECTED){
+                return;
+            }
             bot.sendIRC().message(ircConfigurationService.getMainChannel(), message);
         }
     }
@@ -220,6 +223,7 @@ public class IrcService extends ListenerAdapter {
                     .setName(ircConfigurationService.getNickname())
                     .addServer(ircConfigurationService.getHost(), ircConfigurationService.getPort())
                     .setLogin(ircConfigurationService.getIdent())
+                    .setAutoReconnect(true)
                     .addListener(this);
             if (ircConfigurationService.isTls()){
                 configuration.setSocketFactory(SSLSocketFactory.getDefault());

@@ -86,21 +86,26 @@ public class TflDataLoadService {
                 try (
                         ResultSet rsLineChk = psLineChk.executeQuery();
                         PreparedStatement psUpdLine = connection.prepareStatement(
-                        "UPDATE tfl_line SET line_name=? WHERE line_id=?");
+                        "UPDATE tfl_line SET line_name=?, service_mode=?, is_tfl_service=? WHERE line_id=?");
                         PreparedStatement psInsLine = connection.prepareStatement(
-                                "INSERT INTO  tfl_line (line_id, line_name) VALUES (?,?)"
+                                "INSERT INTO  tfl_line (line_id, line_name, service_mode, is_tfl_service)" +
+                                        " VALUES (?,?,?,?)"
                         )
                 ) {
                     update = rsLineChk.next();
                     if (update) {
                         //Update
                         psUpdLine.setString(1, line.getLineName());
-                        psUpdLine.setString(2, line.getLineId());
+                        psUpdLine.setString(2, line.getMode().getModeName());
+                        psUpdLine.setBoolean(3, line.getMode().isTflService());
+                        psUpdLine.setString(4, line.getLineId());
                         psUpdLine.executeUpdate();
                     } else {
                         //Insert
                         psInsLine.setString(1, line.getLineId());
-                        psInsLine.setString(2, line.getLineId());
+                        psInsLine.setString(2, line.getLineName());
+                        psInsLine.setString(3, line.getMode().getModeName());
+                        psInsLine.setBoolean(2, line.getMode().isTflService());
                         psInsLine.executeUpdate();
                     }
                 }
@@ -280,6 +285,11 @@ public class TflDataLoadService {
                                 serviceType,
                                 configurationUtil.getConfigValue(Constants.PROP_TFL_PRIMARY_API_KEY)
                         );
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
                         String routeResp = ApiUtil.sendSimpleRequest(requestUrl);
                         JSONObject routeObject = new JSONObject(routeResp);
                         JSONArray lineStringArray = routeObject.getJSONArray("lineStrings");

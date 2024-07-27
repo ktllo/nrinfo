@@ -57,36 +57,64 @@ public class TflStatusController {
         }
     }
 
+    private void handleShowDetails(GenericMessageEvent event, List<String> ids) {
+        Map<String, List<LineStatus>> statusMap = tflLineStatusService.getLineStatusMap();
+        Date lastUpdate = tflLineStatusService.getLastUpdate();
+        event.respondWith(getLastUpdMessage(lastUpdate));
+        TreeSet<String> respTree = new TreeSet<>();
+        for(String lineId: statusMap.keySet()){
+            if(ids.contains(lineId)) {
+                for(LineStatus ls:statusMap.get(lineId)){
+                    if (ls.getReason()!=null) {
+                        respTree.add(ls.getReason());
+                    } else if (ls.getStatusSeverity()==10){
+                        //Good Service
+                        respTree.add("There are good service on "+tflLineService.getLineNameById(lineId));
+                    }
+                }
+            }
+        }
+        for(String line:respTree) {
+            event.respondWith(line);
+        }
+        event.respondWith("This is the end of the update from the control corner");
+    }
+
     private void showPublicDetails(GenericMessageEvent event, String [] tokens){
         if (tokens.length<2) {
             return;
         }
-        List<String> ids = tflLineService.getLineIdsByPartialLineName(tokens[1]);
+        int maxItems;
+        if (event instanceof PrivateMessageEvent) {
+            maxItems = Integer.MAX_VALUE;
+        } else {
+            maxItems = 2;
+        }
+        logger.debug("1space:{}, substr:{}", event.getMessage().indexOf(" "), event.getMessage().substring(event.getMessage().indexOf(" ")));
+        List<String> ids = tflLineService.getLineIdsByPartialLineName(tokens[1]).stream().filter(
+                id -> {
+                    if (id.equalsIgnoreCase("bus") || id.equalsIgnoreCase("national-rail"))
+                        return false;
+                    return true;
+                }
+        ).toList();
         if (ids.size()==0) {
             event.respondWith("No matching line");
-        } else if (ids.size()<=2) {
-            Map<String, List<LineStatus>> statusMap = tflLineStatusService.getLineStatusMap();
-            Date lastUpdate = tflLineStatusService.getLastUpdate();
-            event.respondWith(getLastUpdMessage(lastUpdate));
-            TreeSet<String> respTree = new TreeSet<>();
-            for(String lineId: statusMap.keySet()){
-                if(ids.contains(lineId)) {
-                    for(LineStatus ls:statusMap.get(lineId)){
-                        if (ls.getReason()!=null) {
-                            respTree.add(ls.getReason());
-                        } else if (ls.getStatusSeverity()==10){
-                            //Good Service
-                            respTree.add("There are good service on "+tflLineService.getLineNameById(lineId));
-                        }
-                    }
-                }
-            }
-            for(String line:respTree) {
-                event.respondWith(line);
-            }
-            event.respondWith("This is the end of the update from the control corner");
+        } else if (ids.size()<=maxItems) {
+            handleShowDetails(event, ids);
         } else {
-            event.respondWith("Too many matching lines");
+            ids = tflLineService.getLineIdsByLineName(tokens[1]).stream().filter(
+                    id -> {
+                        if (id.equalsIgnoreCase("bus") || id.equalsIgnoreCase("national-rail"))
+                            return false;
+                        return true;
+                    }
+            ).toList();
+            if (ids.size() > 0) {
+                handleShowDetails(event, ids);
+            } else {
+                event.respondWith("Too many matching lines");
+            }
         }
 
     }
