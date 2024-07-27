@@ -86,7 +86,7 @@ public class TflLineStatusService {
                                 break;
                             }
                         }
-                        if (!inOld) {
+                        if (!inOld && newStatus.getStatusSeverity()!= 10) {
                             newLevel.add(newStatus.getStatusSeverityDescription());
                         }
                     }
@@ -99,7 +99,7 @@ public class TflLineStatusService {
                                 break;
                             }
                         }
-                        if (!inNew) {
+                        if (!inNew && oldStatus.getStatusSeverity()!=10) {
                             removedLevel.add(oldStatus.getStatusSeverityDescription());
                         }
                     }
@@ -131,7 +131,7 @@ public class TflLineStatusService {
                 for(String update:updateList){
                     ircService.sendMessage(update);
                 }
-                ircService.sendMessage("This is the end of the update from the control room.");
+                ircService.sendMessage("This is the end of the update from the control corner.");
             }
         }).start();
     }

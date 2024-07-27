@@ -113,7 +113,7 @@ public class TflStatusController {
             if (ids.size() > 0) {
                 handleShowDetails(event, ids);
             } else {
-                event.respondWith("Too many matching lines");
+                event.respondWith("Too many matching lines. Want to see all? PM me!");
             }
         }
 
