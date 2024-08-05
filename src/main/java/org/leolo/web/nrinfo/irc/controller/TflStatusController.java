@@ -90,11 +90,14 @@ public class TflStatusController {
         } else {
             maxItems = 2;
         }
-        logger.debug("1space:{}, substr:{}", event.getMessage().indexOf(" "), event.getMessage().substring(event.getMessage().indexOf(" ")));
-        List<String> ids = tflLineService.getLineIdsByPartialLineName(event.getMessage().substring(event.getMessage().indexOf(" "))).stream().filter(
+        List<String> ids = tflLineService.getLineIdsByPartialLineName(
+                event.getMessage().substring(event.getMessage().indexOf(" "))).stream().filter(
                 id -> {
-                    if (id.equalsIgnoreCase("bus") || id.equalsIgnoreCase("national-rail"))
-                        return false;
+                    String serviceMode = tflLineService.getCachedLineModeByLineId(id);
+                    if (serviceMode!=null) {
+                        if (serviceMode.equalsIgnoreCase("bus") || serviceMode.equalsIgnoreCase("national-rail"))
+                            return false;
+                    }
                     return true;
                 }
         ).toList();
@@ -103,17 +106,21 @@ public class TflStatusController {
         } else if (ids.size()<=maxItems) {
             handleShowDetails(event, ids);
         } else {
-            ids = tflLineService.getLineIdsByLineName(event.getMessage().substring(event.getMessage().indexOf(" "))).stream().filter(
+            List<String> singleCheck = tflLineService.getLineIdsByLineName(event.getMessage().substring(event.getMessage().indexOf(" "))).stream().filter(
                     id -> {
-                        if (id.equalsIgnoreCase("bus") || id.equalsIgnoreCase("national-rail"))
-                            return false;
+                        String serviceMode = tflLineService.getCachedLineModeByLineId(id);
+                        if (serviceMode!=null) {
+                            if (serviceMode.equalsIgnoreCase("bus") || serviceMode.equalsIgnoreCase("national-rail"))
+                                return false;
+                        }
                         return true;
                     }
             ).toList();
-            if (ids.size() > 0) {
-                handleShowDetails(event, ids);
+            if (singleCheck.size() > 0) {
+                handleShowDetails(event, singleCheck);
             } else {
                 event.respondWith("Too many matching lines. Want to see all? PM me!");
+                event.respondWith("Did you means : " + String.join(",", ids));
             }
         }
 

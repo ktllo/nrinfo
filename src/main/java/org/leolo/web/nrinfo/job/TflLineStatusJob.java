@@ -20,7 +20,7 @@ public class TflLineStatusJob {
     @Autowired
     private TflLineStatusService tflLineStatusService;
 
-    @Scheduled(fixedDelay = 300_000) //300s = 5 min
+    @Scheduled(fixedDelay = 120_000) //300s = 5 min
     public void execute() throws JobExecutionException, IOException {
         log.info("Job triggered");
         tflLineStatusService.execute();

@@ -58,7 +58,7 @@ public class TflLineStatusService {
     ) {
         new Thread(()->{
             List<String> updateList = new ArrayList<>();
-            for(String lineId: newMap.keySet()){
+            for(String lineId: newMap.keySet()) {
                 //Step 1: find new line
                 //Step 2: Compare line by line
                 if (!oldMap.containsKey(lineId)) {
@@ -68,9 +68,9 @@ public class TflLineStatusService {
                     List<LineStatus> newStatuses = newMap.get(lineId);
                     List<LineStatus> oldStatuses = oldMap.get(lineId);
                     //Check is the only status "Good Service"
-                    if (newStatuses.size()==1 && newStatuses.get(0).getStatusSeverity()==10) {
+                    if (newStatuses.size() == 1 && newStatuses.get(0).getStatusSeverity() == 10) {
                         //TODO: Update database
-                        if (oldStatuses.size()>1 || (oldStatuses.size()==1 && oldStatuses.get(0).getStatusSeverity()!=10)) {
+                        if (oldStatuses.size() > 1 || (oldStatuses.size() == 1 && oldStatuses.get(0).getStatusSeverity() != 10)) {
                             updateList.add("There are Good Service now on " + tfLApiService.getLineName(lineId));
                         }
                         logger.debug("{}: -->--> GOOD SERVICE", lineId);
@@ -78,60 +78,32 @@ public class TflLineStatusService {
                     Set<String> newLevel = new TreeSet<>();
                     Set<String> removedLevel = new TreeSet<>();
                     //Check for new status
-                    for(LineStatus newStatus:newStatuses) {
+                    for (LineStatus newStatus : newStatuses) {
                         boolean inOld = false;
-                        for(LineStatus oldStatus:oldStatuses){
-                            if(newStatus.getStatusSeverity()==oldStatus.getStatusSeverity()){
+                        for (LineStatus oldStatus : oldStatuses) {
+                            if (newStatus.getStatusSeverity() == oldStatus.getStatusSeverity()) {
                                 inOld = true;
                                 break;
                             }
                         }
-                        if (!inOld && newStatus.getStatusSeverity()!= 10) {
+                        if (!inOld && newStatus.getStatusSeverity() != 10) {
                             newLevel.add(newStatus.getStatusSeverityDescription());
                         }
                     }
                     //Check for missing old status
-                    for(LineStatus oldStatus:oldStatuses) {
+                    for (LineStatus oldStatus : oldStatuses) {
                         boolean inNew = false;
-                        for(LineStatus newStatus:newStatuses){
-                            if(newStatus.getStatusSeverity()==oldStatus.getStatusSeverity()){
+                        for (LineStatus newStatus : newStatuses) {
+                            if (newStatus.getStatusSeverity() == oldStatus.getStatusSeverity()) {
                                 inNew = true;
                                 break;
                             }
                         }
-                        if (!inNew && oldStatus.getStatusSeverity()!=10) {
+                        if (!inNew && oldStatus.getStatusSeverity() != 10) {
                             removedLevel.add(oldStatus.getStatusSeverityDescription());
                         }
                     }
-                    //form the message
-                    if (newLevel.size()>0||removedLevel.size()>0) {
-                        StringBuilder sb = new StringBuilder();
-                        sb.append(tfLApiService.getLineName(lineId)).append(" is ");
-                        if (newLevel.size() > 0) {
-                            sb.append("now having ");
-                            for (String status : newLevel) {
-                                sb.append(status).append(" ");
-                            }
-                        }
-                        if (removedLevel.size() > 0) {
-                            if (newLevel.size() > 0) {
-                                sb.append("and ");
-                            }
-                            sb.append("no longer ");
-                            for (String status : removedLevel) {
-                                sb.append(status).append(" ");
-                            }
-                        }
-                        updateList.add(sb.toString());
-                    }
                 }
-            }
-            if(updateList.size()>0){
-                ircService.sendMessage("This is an update from the control corner of #traintalk");
-                for(String update:updateList){
-                    ircService.sendMessage(update);
-                }
-                ircService.sendMessage("This is the end of the update from the control corner.");
             }
         }).start();
     }
