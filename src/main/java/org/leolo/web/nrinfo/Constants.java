@@ -5,4 +5,6 @@ public class Constants {
 
     public static final String PROP_TFL_PRIMARY_API_KEY = "remote.tfl.primary_key";
     public static final String PROP_TFL_SECONDARY_API_KEY = "remote.tfl.secondary_key";
+
+    public static final String SESSION_USER_ID = "userId";
 }
