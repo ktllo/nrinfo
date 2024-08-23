@@ -30,8 +30,8 @@ public class TflLineStatusService {
 
     @Autowired
     private TfLApiService tfLApiService;
-    @Autowired
-    private IrcService ircService;
+//    @Autowired
+//    private IrcService ircService;
 
     public void execute() throws IOException {
         logger.info("Job started");

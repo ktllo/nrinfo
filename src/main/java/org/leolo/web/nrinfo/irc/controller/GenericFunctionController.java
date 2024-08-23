@@ -68,7 +68,6 @@ public class GenericFunctionController {
         }
         sb.append(s).append("s");
         event.respond(sb.toString());
-
     }
 
 

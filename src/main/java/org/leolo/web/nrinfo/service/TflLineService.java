@@ -111,4 +111,42 @@ public class TflLineService {
         }
         return null;
     }
+
+    public boolean isTflServiceByLineId(String lineId) {
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(
+                        "SELECT is_tfl_service FROM tfl_line WHERE line_id = ?"
+                )
+        ) {
+            pstmt.setString(1, lineId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if(rs.next()){
+                    return rs.getBoolean(1);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error - {}", e.getMessage(), e);
+        }
+        return false;
+    }
+
+    public String getServiceModeNameByLineId(String lineId) {
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(
+                        "SELECT service_mode FROM tfl_line WHERE line_id = ?"
+                )
+        ) {
+            pstmt.setString(1, lineId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if(rs.next()){
+                    return rs.getString(1);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error - {}", e.getMessage(), e);
+        }
+        return null;
+    }
 }

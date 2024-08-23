@@ -2,12 +2,16 @@ package org.leolo.web.nrinfo.irc.controller;
 
 import ch.qos.logback.core.encoder.EchoEncoder;
 import org.apache.commons.collections.map.HashedMap;
+import org.leolo.web.nrinfo.irc.IrcService;
 import org.leolo.web.nrinfo.irc.annotation.Command;
 import org.leolo.web.nrinfo.irc.annotation.IrcController;
+import org.leolo.web.nrinfo.irc.model.TflLineStatusAlert;
+import org.leolo.web.nrinfo.irc.service.IrcUserService;
 import org.leolo.web.nrinfo.model.tfl.LineStatus;
 import org.leolo.web.nrinfo.service.TfLApiService;
 import org.leolo.web.nrinfo.service.TflLineService;
 import org.leolo.web.nrinfo.service.TflLineStatusService;
+import org.leolo.web.nrinfo.service.UserService;
 import org.pircbotx.Colors;
 import org.pircbotx.hooks.Event;
 import org.pircbotx.hooks.events.MessageEvent;
@@ -16,15 +20,19 @@ import org.pircbotx.hooks.types.GenericMessageEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-@IrcController
+@IrcController(init = true)
+@Qualifier("ircTflStatusController")
 public class TflStatusController {
 
     private Logger logger = LoggerFactory.getLogger(TflStatusController.class);
+
+    public static final String MISC_DATA_STATUS_ALERT = "tflStatusAlert.alertLevels";
 
     @Autowired
     private TflLineStatusService tflLineStatusService;
@@ -34,6 +42,13 @@ public class TflStatusController {
 
     @Autowired
     private TflLineService tflLineService;
+
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private IrcUserService ircUserService;
+//    @Autowired
+//    private IrcService ircService;
 
     @Command("lustatus")
     public void getTflStatus(PrivateMessageEvent event){
@@ -55,6 +70,67 @@ public class TflStatusController {
         } else {
             showPublicDetails(event, tokens);
         }
+    }
+
+    @Command("lualert")
+    public void alertSetting(GenericMessageEvent event){
+        String[]  tokens = event.getMessage().split(" ");
+        if (tokens.length < 2) {
+            event.respond("Missing subcommand");
+            return;
+        } else if (tokens[1].equalsIgnoreCase("add")) {
+            addAlert(event, tokens);
+        }
+    }
+
+    private void addAlert(GenericMessageEvent event, String[] tokens){
+        if(tokens.length < 3 ){
+            alertAddHelp(event);
+        }
+        ircUserService.checkHostmaskForLogin(event.getUserHostmask());
+        int userId = ircUserService.getUserIdByNickname(event.getUserHostmask().getNick());
+        if (userId == IrcUserService.NO_USER_FOUND) {
+            event.respondWith("Registered user only");
+            return;
+        }
+        String line = tokens[2];
+        String level = tokens.length > 3 ?tokens[3]:"status";
+        if (
+                !tflLineService.isTflServiceByLineId(line) ||
+                "bus".equalsIgnoreCase(tflLineService.getServiceModeNameByLineId(line))
+        ) {
+            event.respondWith("Line not exists or not eligible");
+            return;
+        }
+        //Identify level
+        TflLineStatusAlert.AlertLevel alertLevel = null;
+        if (level.equalsIgnoreCase("status")){
+            alertLevel = TflLineStatusAlert.AlertLevel.STATUS_ONLY;
+        } else if (level.equalsIgnoreCase("period")) {
+            alertLevel = TflLineStatusAlert.AlertLevel.STATUS_AND_PERIOD;
+        } else if (level.equalsIgnoreCase("all")) {
+            alertLevel = TflLineStatusAlert.AlertLevel.ALL;
+        } else if (level.equalsIgnoreCase("none")) {
+            //Alias for remove
+            alertLevel = TflLineStatusAlert.AlertLevel.NONE;
+        } else {
+            alertAddHelp(event);
+        }
+        TflLineStatusAlert miscData = userService.getMiscData(userId, MISC_DATA_STATUS_ALERT, TflLineStatusAlert.class);
+        if (miscData == null) {
+            miscData = new TflLineStatusAlert();
+        }
+        miscData.addAlert(line, alertLevel);
+        userService.saveMiscData(userId, MISC_DATA_STATUS_ALERT, miscData);
+    }
+
+    private void alertHelp(GenericMessageEvent event) {
+
+    }
+
+    private void alertAddHelp(GenericMessageEvent event) {
+        event.respond("lustatus add <line> <level>");
+        event.respond("level is one of : status, period, all, none");
     }
 
     private void handleShowDetails(GenericMessageEvent event, List<String> ids) {
@@ -177,5 +253,8 @@ public class TflStatusController {
             }
             event.respondWith("Good service on all other lines");
         }
+    }
+
+    public void init() {
     }
 }

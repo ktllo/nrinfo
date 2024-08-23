@@ -34,9 +34,6 @@ public class TfLApiService {
     ConfigurationUtil configurationUtil;
 
     @Autowired
-    IrcService ircService;
-
-    @Autowired
     private DataSource dataSource;
 
     public List<ServiceMode> getServiceMode() throws IOException {
