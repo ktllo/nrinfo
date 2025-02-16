@@ -145,7 +145,7 @@ public class IrcUserService {
         return list;
     }
 
-    public void addUserHostmask(int userId, String nickname, String ident, String host) {
+    public boolean addUserHostmask(int userId, String nickname, String ident, String host) {
         try(Connection conn = dataSource.getConnection()) {
             try(PreparedStatement pstmt = conn.prepareStatement(
                     "INSERT INTO user_irc_mask (user_id, nickname, ident, host) VALUES (?,?,?,?)"
@@ -155,10 +155,32 @@ public class IrcUserService {
                 pstmt.setString(3, ident);
                 pstmt.setString(4, host);
                 pstmt.executeUpdate();
+                return true;
             }
         } catch (SQLException e) {
             log.error("Unable to add hostmask to user {} - {}", userId, e.getMessage(), e);
         }
+        return false;
+    }
+
+    public boolean removeHostmask(int userId, String nickname, String ident, String host) {
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(
+                        "DELETE FROM user_irc_mask " +
+                                "WHERE user_id=? AND nickname=? AND ident=? AND host=?"
+                )
+        ) {
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, nickname);
+            pstmt.setString(3, ident);
+            pstmt.setString(4, host);
+            int rowAffected = pstmt.executeUpdate();
+            return rowAffected == 1;
+        } catch (SQLException e) {
+            log.error("Unable to remove hostmask from user {} - {}", userId, e.getMessage(), e);
+        }
+        return false;
     }
 
     public int getUserIdByHostmask(String nickname, String ident, String host){

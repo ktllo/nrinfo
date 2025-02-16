@@ -47,6 +47,7 @@ public class TflStatusController {
     private UserService userService;
     @Autowired
     private IrcUserService ircUserService;
+    
 //    @Autowired
 //    private IrcService ircService;
 

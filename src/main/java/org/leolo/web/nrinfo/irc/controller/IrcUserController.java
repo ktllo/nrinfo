@@ -6,6 +6,7 @@ import org.leolo.web.nrinfo.irc.annotation.Command;
 import org.leolo.web.nrinfo.irc.annotation.IrcController;
 import org.leolo.web.nrinfo.irc.service.IrcUserService;
 import org.leolo.web.nrinfo.service.ConfigurationService;
+import org.leolo.web.nrinfo.service.UserLinkKeyService;
 import org.leolo.web.nrinfo.service.UserService;
 import org.leolo.web.nrinfo.util.IrcUtil;
 import org.pircbotx.hooks.events.MessageEvent;
@@ -35,6 +36,8 @@ public class IrcUserController {
     private UserService userService;
     @Autowired
     private IrcUserService ircUserService;
+    @Autowired
+    private UserLinkKeyService userLinkKeyService;
 
     @Command("register")
     public void register(MessageEvent event){
@@ -109,16 +112,31 @@ public class IrcUserController {
             hostmaskList(event);
         } else if ("add".equalsIgnoreCase(tokens[1])){
             addHostmask(event, tokens);
+        } else if (
+                "drop".equalsIgnoreCase(tokens[1]) ||
+                        "remove".equalsIgnoreCase(tokens[1])
+        ) {
+            //We accept both drop and remove
+            removeHostmask(event, tokens);
         }
     }
 
-    @Command("test1")
-    public void test1(GenericMessageEvent event){
-        ircUserService.checkHostmaskForLogin(event.getUserHostmask());
-        int userId = ircUserService.getUserIdByNickname(event.getUserHostmask().getNick());
-        userService.saveMiscData(userId, "Test1", "This is some test data");
-        userService.saveMiscData(userId, "Test2", new java.util.Date());
-        userService.saveMiscData(userId, "Test3", new java.util.HashMap<String, String>());
+    @Command("link")
+    public void incomingLink(GenericMessageEvent event) {
+        String [] tokens = event.getMessage().split(" ");
+        if (tokens.length < 2) {
+            event.respondWith("Missing link key");
+            return;
+        }
+        UserLinkKeyService.UserLinkResult ulr = userLinkKeyService.attemptLink(
+                tokens[1] , "irc", true
+        );
+        if (ulr.isResult()){
+            ircUserService.addUser(ulr.getUserId(), event.getUserHostmask());
+            event.respondWith("Linked successfully!");
+        } else {
+            event.respondWith("Link failed.");
+        }
     }
 
     private void addHostmask(GenericMessageEvent event, String[] tokens) {
@@ -141,6 +159,44 @@ public class IrcUserController {
             //Check duplicate
             if (userId == ircUserService.getUserIdByHostmask(nickname, ident, host)) {
                 return;
+            }
+            ircUserService.addUserHostmask(
+                    userId,
+                    nickname,
+                    ident,
+                    host
+            );
+        } catch (RuntimeException e) {
+            event.respond("Incorrect format");
+        }
+    }
+
+    private void removeHostmask(GenericMessageEvent event, String[] tokens) {
+        int userId = ircUserService.getUserIdByNickname(event.getUserHostmask().getNick());
+        if (userId == IrcUserService.NO_USER_FOUND) {
+            event.respond("Registered user only.");
+            return;
+        }
+        if (tokens.length < 3){
+            hostmaskHelp(event);
+            return;
+        }
+        //Split
+        String hostmask = tokens[2];
+        try {
+            Tuple3<String, String, String> splitMask = IrcUtil.splitHostmask(hostmask);
+            String nickname = splitMask._1();
+            String ident = splitMask._2();
+            String host = splitMask._3();
+            if (ircUserService.removeHostmask(
+                    userId,
+                    nickname,
+                    ident,
+                    host
+            )){
+                event.respondWith("Hostmask removed");
+            } else {
+                event.respondWith("Unable to remove hostmask");
             }
 
         } catch (RuntimeException e) {

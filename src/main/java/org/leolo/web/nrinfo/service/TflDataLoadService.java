@@ -5,6 +5,7 @@ import ch.qos.logback.core.recovery.ResilientFileOutputStream;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.leolo.web.nrinfo.Constants;
+import org.leolo.web.nrinfo.job.dao.JobErrorDao;
 import org.leolo.web.nrinfo.model.tfl.Line;
 import org.leolo.web.nrinfo.model.tfl.RouteSection;
 import org.leolo.web.nrinfo.model.tfl.ServiceMode;
@@ -46,8 +47,14 @@ public class TflDataLoadService {
     @Autowired
     private ConfigurationUtil configurationUtil;
 
+    @Autowired
+    private JobErrorDao jobErrorDao;
+
+    private UUID currentJobId;
+
     public void loadRoutes(UUID jobUUID) throws IOException {
         jobStatusService.insertJob(jobUUID, "dataload.tfl.route");
+        currentJobId = jobUUID;
         //Step 0: Check last run
         Date lastRunTime = jobStatusService.getLastRunTime("tfl.route");
         if (lastRunTime == null) {
@@ -252,8 +259,8 @@ public class TflDataLoadService {
             }
 
         } catch (SQLException e) {
-
             logger.error("Error when insert/updating line : {}", e.getMessage(), e);
+            jobErrorDao.logError(currentJobId, e);
         }
     }
 
