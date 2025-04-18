@@ -1,7 +1,6 @@
 package org.leolo.web.nrinfo.web.controller;
 
 import lombok.Getter;
-import org.leolo.web.nrinfo.model.tfl.LineStatus;
 import org.leolo.web.nrinfo.service.TflLineService;
 import org.leolo.web.nrinfo.service.TflLineStatusService;
 import org.slf4j.Logger;

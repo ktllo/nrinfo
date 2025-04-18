@@ -2,9 +2,6 @@ package org.leolo.web.nrinfo.service;
 
 import org.json.JSONObject;
 import org.leolo.web.nrinfo.Constants;
-import org.leolo.web.nrinfo.irc.IrcService;
-import org.leolo.web.nrinfo.model.tfl.LineStatus;
-import org.leolo.web.nrinfo.model.tfl.ServiceMode;
 import org.leolo.web.nrinfo.util.ApiUtil;
 import org.leolo.web.nrinfo.util.ConfigurationUtil;
 import org.slf4j.Logger;

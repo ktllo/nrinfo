@@ -1,19 +1,14 @@
 package org.leolo.web.nrinfo.irc.controller;
 
-import ch.qos.logback.core.encoder.EchoEncoder;
-import org.apache.commons.collections.map.HashedMap;
-import org.leolo.web.nrinfo.irc.IrcService;
 import org.leolo.web.nrinfo.irc.annotation.Command;
 import org.leolo.web.nrinfo.irc.annotation.IrcController;
 import org.leolo.web.nrinfo.irc.model.TflLineStatusAlert;
 import org.leolo.web.nrinfo.irc.service.IrcUserService;
-import org.leolo.web.nrinfo.model.tfl.LineStatus;
 import org.leolo.web.nrinfo.service.TfLApiService;
 import org.leolo.web.nrinfo.service.TflLineService;
 import org.leolo.web.nrinfo.service.TflLineStatusService;
 import org.leolo.web.nrinfo.service.UserService;
 import org.pircbotx.Colors;
-import org.pircbotx.hooks.Event;
 import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.PrivateMessageEvent;
 import org.pircbotx.hooks.types.GenericMessageEvent;
@@ -21,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
