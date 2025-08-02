@@ -304,7 +304,7 @@ public class IrcService extends ListenerAdapter {
             if (ircConfigurationService.hasSasl()){
                 logger.debug("Login via SASL as {} with password {}",
                         ircConfigurationService.getSaslUsername(),
-                        ircConfigurationService.getSaslPassword()
+                        "**********"
                 );
                 configuration.addCapHandler(new SASLCapHandler(ircConfigurationService.getSaslUsername(), ircConfigurationService.getSaslPassword()));
             }

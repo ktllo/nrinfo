@@ -1,7 +1,7 @@
 package org.leolo.web.nrinfo.controller;
 
 import org.leolo.web.nrinfo.service.ConfigurationService;
-import org.leolo.web.nrinfo.service.TflDataLoadService;
+import org.leolo.web.nrinfo.service.tfl.TflDataLoadService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

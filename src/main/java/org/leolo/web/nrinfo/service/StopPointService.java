@@ -35,10 +35,10 @@ public class StopPointService {
                             "atco_code, naptan_code, plate_code, common_name, short_common_name, " +
                             "landmark, street, crossing, `indicator`, bearing, " +
                             "nptg_code, locality_name, perent_locality_name, grandparent_locality_name, town, " +
-                            "subrub, locality_centre, grid_type, easting, northing, " +
-                            "longitude, latitude, stop_type, bus_stop_type, timing_status, " +
-                            "version_nuber, status, last_update_time, dist(easting, ?, northing, ?) AS distance " +
-                            "FROM naptan " +
+                            "subrub, grid_type, easting, northing, " +
+                            "longitude, latitude, stop_type, bus_stop_type, " +
+                            "last_update_time, dist(easting, ?, northing, ?) AS distance " +
+                            "FROM naptan_2025 " +
                             "WHERE " +
                             "    easting between ? and ? " +
                             "and northing between ? and ? " +

@@ -25,7 +25,7 @@ public class JobErrorDao {
         try (
                 Connection conn = ds.getConnection();
                 PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO job_error (job_id, error_id, exception, stacktrace, logged_time) " +
+                        "INSERT INTO job_error (job_id, error_id, error_message, stack_trace, logged_time) " +
                                 "VALUES (?, ?, ?, ?, NOW())")
         ) {
             ps.setString(1, jobId.toString());
