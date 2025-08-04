@@ -1,5 +1,9 @@
 package org.leolo.web.nrinfo.service.networkrail;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.leolo.web.nrinfo.model.networkrail.Corpus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -44,6 +49,17 @@ public class NetworkRailDataLoadService {
             }
             String corpusData = new String(data);
             logger.info("CORPUS data loaded. length = {}", data.length);
+            ObjectMapper mapper = new ObjectMapper();
+            List<Corpus> corpusList = null;
+            try {
+                JsonNode rootNode = mapper.readTree(corpusData);
+                JsonNode corpusNode = rootNode.get("TIPLOCDATA");
+                corpusList = mapper.readValue(corpusNode.traverse(), new TypeReference<List<Corpus>>() {});
+            } catch (IOException e) {
+                logger.error("JSON Parsing error - {}",e.getMessage(), e);
+                throw new RuntimeException(e);
+            }
+            logger.info("CORPUS data loaded. Number of rows = {}", corpusList.size());
             //Parse data
             //Load into database
         }
