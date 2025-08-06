@@ -35,4 +35,17 @@ public class Corpus {
         this.shortName = shortName;
         this.longName = longName;
     }
+
+    @Override
+    public String toString() {
+        return "Corpus{" +
+                "stanox='" + stanox + '\'' +
+                ", uicCode='" + uicCode + '\'' +
+                ", crsCode='" + crsCode + '\'' +
+                ", tiploc='" + tiploc + '\'' +
+                ", nlc='" + nlc + '\'' +
+                ", shortName='" + shortName + '\'' +
+                ", longName='" + longName + '\'' +
+                '}';
+    }
 }

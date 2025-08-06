@@ -3,6 +3,7 @@ package org.leolo.web.nrinfo.service.networkrail;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.leolo.web.nrinfo.dao.networkrail.CorpusDao;
 import org.leolo.web.nrinfo.model.networkrail.Corpus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,11 @@ public class NetworkRailDataLoadService {
     public static final String URL_CORPUS = "https://publicdatafeeds.networkrail.co.uk/ntrod/SupportingFileAuthenticate?type=CORPUS";
 
     @Autowired
-    NetworkRailApiRequestService networkRailApiRequestService;
+    private NetworkRailApiRequestService networkRailApiRequestService;
+
+    @Autowired
+    private CorpusDao corpusDao;
+
     public Method getLoaderMethod(String type) {
         try {
             if (type.equalsIgnoreCase("CORPUS")) {
@@ -49,6 +54,7 @@ public class NetworkRailDataLoadService {
             }
             String corpusData = new String(data);
             logger.info("CORPUS data loaded. length = {}", data.length);
+            //Parse data
             ObjectMapper mapper = new ObjectMapper();
             List<Corpus> corpusList = null;
             try {
@@ -60,8 +66,8 @@ public class NetworkRailDataLoadService {
                 throw new RuntimeException(e);
             }
             logger.info("CORPUS data loaded. Number of rows = {}", corpusList.size());
-            //Parse data
             //Load into database
+            corpusDao.addOrReplaceAll(corpusList);
         }
     }
 }
