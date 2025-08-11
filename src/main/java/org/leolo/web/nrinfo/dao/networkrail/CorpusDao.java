@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.Collection;
-import java.util.HashSet;
 
 @Component
 public class CorpusDao extends BaseDao {
@@ -20,7 +19,7 @@ public class CorpusDao extends BaseDao {
     @Autowired
     private DataSource dataSource;
 
-    public void addOrReplaceAll(Collection<Corpus> corpus) {
+    public void addAll(Collection<Corpus> corpus) {
         try(Connection connection = dataSource.getConnection()) {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);

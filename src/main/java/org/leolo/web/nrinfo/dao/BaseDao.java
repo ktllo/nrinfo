@@ -21,4 +21,16 @@ public class BaseDao {
             ps.setString(pos, data);
         }
     }
+
+    protected void setInt(PreparedStatement ps, int pos, int data) throws SQLException {
+        ps.setInt(pos, data);
+    }
+
+    protected void setInt(PreparedStatement ps, int pos, Integer data) throws SQLException {
+        if (data == null) {
+            ps.setNull(pos, Types.INTEGER);
+        } else {
+            ps.setInt(pos, data);
+        }
+    }
 }
