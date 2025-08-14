@@ -1,5 +1,6 @@
 package org.leolo.web.nrinfo.controller;
 
+import org.leolo.web.nrinfo.job.JobControlService;
 import org.leolo.web.nrinfo.service.ConfigurationService;
 import org.leolo.web.nrinfo.service.networkrail.NetworkRailDataLoadService;
 import org.leolo.web.nrinfo.service.tfl.TflDataLoadService;
@@ -31,6 +32,9 @@ public class DataLoadController {
     @Autowired
     private NetworkRailDataLoadService networkRailDataLoadService;
 
+    @Autowired
+    private JobControlService jobControlService;
+
     @RequestMapping("tfl/route")
     public Object loadTflRoute(
             @RequestParam(name = "key", required = false, defaultValue = "") String key
@@ -45,12 +49,15 @@ public class DataLoadController {
         }
         //We start the job
         final UUID jobUUID = UUID.randomUUID();
+        jobControlService.startJob(jobUUID, "tflLine");
         new Thread(()->{
             synchronized (TflDataLoadService.SYNC_TOKEN_DATALOAD){
                 try {
                     tflDataLoadService.loadRoutes(jobUUID);
+                    jobControlService.markJobAsCompleted(jobUUID);
                 } catch (Exception e) {
                     logger.error(e.getMessage(),e);
+                    jobControlService.markJobAsFailed(jobUUID, e);
                 }
             }
         }).start();
@@ -84,12 +91,18 @@ public class DataLoadController {
         }
         //We start the job
         final UUID jobUUID = UUID.randomUUID();
+        jobControlService.startJob(jobUUID, dataloadMethod.toGenericString());
         new Thread(()->{
             synchronized (TflDataLoadService.SYNC_TOKEN_DATALOAD){
                 try {
+                    //log job
                     dataloadMethod.invoke(networkRailDataLoadService, jobUUID);
+                    //Mark job success
+                    jobControlService.markJobAsCompleted(jobUUID);
                 } catch (Exception e) {
                     logger.error(e.getMessage(),e);
+                    //log job error
+                    jobControlService.markJobAsFailed(jobUUID, e);
                 }
             }
         }).start();

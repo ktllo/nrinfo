@@ -41,6 +41,8 @@ public class NetworkRailDataLoadService {
                 return NetworkRailDataLoadService.class.getDeclaredMethod("loadCORPUS", UUID.class);
             } else if (type.equalsIgnoreCase("SMART")) {
                 return NetworkRailDataLoadService.class.getDeclaredMethod("loadSMART", UUID.class);
+            } else if (type.equalsIgnoreCase("ERROR")) {
+                return NetworkRailDataLoadService.class.getDeclaredMethod("errorJob", UUID.class);
             }
         } catch (NoSuchMethodException e) {
             logger.error("Unable to find declared method - {}", e.getMessage(), e);
@@ -74,7 +76,7 @@ public class NetworkRailDataLoadService {
             }
             logger.info("CORPUS data loaded. Number of rows = {}", corpusList.size());
             //Load into database
-            corpusDao.addAll(corpusList);
+            corpusDao.truncateAndAddAll(corpusList);
         }
     }
 
@@ -107,5 +109,9 @@ public class NetworkRailDataLoadService {
             smartDao.truncateTable();
             smartDao.addAll(smartList);
         }
+    }
+
+    public void errorJob(UUID jobUUID) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

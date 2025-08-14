@@ -19,7 +19,7 @@ public class CorpusDao extends BaseDao {
     @Autowired
     private DataSource dataSource;
 
-    public void addAll(Collection<Corpus> corpus) {
+    public void truncateAndAddAll(Collection<Corpus> corpus) {
         try(Connection connection = dataSource.getConnection()) {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
