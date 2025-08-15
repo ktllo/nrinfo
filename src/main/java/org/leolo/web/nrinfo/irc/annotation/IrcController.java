@@ -14,4 +14,6 @@ import java.lang.annotation.Target;
 public @interface IrcController {
     @AliasFor(annotation = Component.class)
     String value() default "";
+
+    boolean init() default false;
 }

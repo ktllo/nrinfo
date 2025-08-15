@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <th:block th:include="shared_header.html"/>
+        <script>
+            function toggle(lineId) {
+                $('#sub_1_'+lineId).toggle( 400, function () {
+                    if($('#sub_1_'+lineId).is(':visible')) {
+                        $('#icon_'+lineId).removeClass("ui-icon-caret-1-s").addClass("ui-icon-caret-1-n");
+                    } else {
+                        $('#icon_'+lineId).removeClass("ui-icon-caret-1-n").addClass("ui-icon-caret-1-s");
+                    }
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <h2 style="font-size: xx-large; width: 100%">TfL Service Status</h2>
+        <table style="font-size: xx-large; border: 1px solid black; padding: 0.5ex 1em; width: 100%">
+            <tbody
+                    style="font-size: xx-large; border: 1px solid black; padding: 0.5ex 1em; width: 100%"
+                    th:each="entry:${priorityList}">
+                <tr
+                        th:id="'title_' + ${entry.lineId}"
+                        th:onclick="toggle([[${entry.lineId}]])"
+                        style="font-weight: bold"
+                >
+                    <td style="width: 32px"><span  class="ui-icon ui-icon-caret-1-s" th:id="'icon_' + ${entry.lineId}"/></td>
+                    <td style="width: 40%" th:text="${entry.lineName}" ></td>
+                    <td>
+                        <div th:each="level:${entry.getStatusName()}">
+                            <span th:text="${level}"/>
+                        </div>
+                    </td>
+                </tr>
+                <tr
+                        th:unless="${entry.isGoodService()}"
+                        th:classappend="'sub_' + ${entry.lineId}"
+                        th:id="'sub_1_' + ${entry.lineId}"
+                        style="display: none; font-size: initial">
+                    <td colspan="3">
+                        <p th:utext="${entry.getStatusMessage()}"/>
+                        <p>
+                            From <span th:text="${#dates.format(entry.fromDate, 'dd-MM-yyyy HH:mm:ss')}"/>
+                            to <span th:text="${#dates.format(entry.toDate, 'dd-MM-yyyy HH:mm:ss')}"/>
+                        </p>
+                        <a th:href="'/tfl/status/' + ${entry.eventId}">Event history</a>
+                    </td>
+                </tr>
+            </tbody>
+            <tbody
+                    style="font-size: xx-large; border: 1px solid black; padding: 0.5ex 1em; width: 100%"
+                    th:each="entry:${standardList}">
+                <tr th:id="'title_' + ${entry.lineId}" th:onclick="toggle([[${entry.lineId}]])">
+                    <td style="width: 32px"><span  class="ui-icon ui-icon-caret-1-s" th:id="'icon_' + ${entry.lineId}"></td>
+                    <td style="width: 40%" th:text="${entry.lineName}"></td>
+                    <td>
+                        <div th:each="level:${entry.getStatusName()}">
+                            <span th:text="${level}"/>
+                        </div>
+                    </td>
+                </tr>
+                <tr
+                        th:unless="${entry.isGoodService()}"
+                        th:classappend="'sub_' + ${entry.lineId}"
+                        th:id="'sub_1_' + ${entry.lineId}"
+                        style="display: none; font-size: initial">
+                    <td colspan="3">
+                        <p th:utext="${entry.getStatusMessage()}"/>
+                        <p>
+                            From <span th:text="${#dates.format(entry.fromDate, 'dd-MM-yyyy HH:mm:ss')}"/>
+                            to <span th:text="${#dates.format(entry.toDate, 'dd-MM-yyyy HH:mm:ss')}"/>
+                        </p>
+                        <a th:href="'/tfl/status/' + ${entry.eventId}">Event history</a>
+                    </td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr th:if="${goodServiceList.size()>0 && (priorityList.size()>0||standardList.size()>0)}">
+                    <td colspan="3">
+                        Good service on all other London Underground, Overground, DLR, Cable Car and river boat services.
+                    </td>
+                </tr>
+                <tr th:if="${goodServiceList.size()>0 && priorityList.size()==0 && standardList.size()==0}">
+                    <td colspan="3">
+                        Good service on all London Underground, Overground, DLR, Cable Car and river boat services.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="font-size: xx-large; border: 1px solid black; padding: 0.5ex 1em;">
+            Search Recent Disruption
+        </div>
+        <div>
+            The information here was obtained via TfL's API and may be cached. The data here may be incorrect, or stale.
+            For latest information, always check with TfL. <br>
+            Also, do remember that the information may change rapidly, especially near the start of the disruption.
+            <span style="font-weight: bold">ALWAYS</span> check before you travel. <br>
+            <span style="font-weight: bold">DO NOT USE THIS INFORMATION FOR SAFETY CRITICAL TASKS. ALWAYS CHECK WITH
+            CONTROLLER/SIGNALLER!</span>
+        </div>
+        <div>Last cache update : <span th:text="${lastUpdate}"/></div>
+    </body>
+</html>

@@ -1,22 +1,15 @@
 package org.leolo.web.nrinfo.model.tfl;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Vector;
-
-
+@Getter
+@Setter
+@NoArgsConstructor
 public class Line {
-    @Getter
-    @Setter
     private String lineId;
-
-    @Getter
-    @Setter
     private String lineName;
-
-    @Getter
-    private List<RouteSection> routeSections = new Vector<>();
+    private String modeCode;
 }
