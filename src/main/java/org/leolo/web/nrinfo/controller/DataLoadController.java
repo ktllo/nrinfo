@@ -113,4 +113,51 @@ public class DataLoadController {
         return resultMap;
     }
 
+    @RequestMapping("networkrail/schedule/{type}/{set}")
+    public Object loadNetworkRailScheduleData(
+            @RequestParam(name = "key", required = false, defaultValue = "") String key,
+            @PathVariable String type,
+            @PathVariable String set
+    ) {
+        String targetKey = configurationService.getConfiguration("dataload.networkrail.key");
+        if(!targetKey.trim().equals(key.trim())){
+            //Given key is invalid
+            Map<String, Object> errorMap = new HashMap<>();
+            errorMap.put("status","error");
+            errorMap.put("message","Unauthorized");
+            return errorMap;
+        }
+        //Look for the dataload method
+        Method dataloadMethod = networkRailDataLoadService.getLoaderMethod(type);
+        if (dataloadMethod == null) {
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("status","error");
+            resultMap.put("message","Type not implemented");
+            resultMap.put("type",type);
+            return resultMap;
+        }
+        //We start the job
+        final UUID jobUUID = UUID.randomUUID();
+        jobControlService.startJob(jobUUID, dataloadMethod.toGenericString());
+        jobControlService.putJobData(jobUUID,"type",type);
+        jobControlService.putJobData(jobUUID,"set",set);
+        new Thread(()->{
+            synchronized (TflDataLoadService.SYNC_TOKEN_DATALOAD){
+                try {
+                    //Mark job success
+                    jobControlService.markJobAsCompleted(jobUUID);
+                } catch (Exception e) {
+                    logger.error(e.getMessage(),e);
+                    //log job error
+                    jobControlService.markJobAsFailed(jobUUID, e);
+                }
+            }
+        }).start();
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("status","success");
+        resultMap.put("jobId",jobUUID.toString());
+        resultMap.put("message","Job started");
+        return resultMap;
+    }
+
 }
