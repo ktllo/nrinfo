@@ -68,41 +68,17 @@ public class UserController {
     @RequestMapping("/login")
     public Object login(
             @RequestParam String username,
-            @RequestParam String password,
-            HttpSession session){
+            @RequestParam String password){
         Map<String, Object> result = new HashMap<String, Object>();
-        try(
-                Connection conn = dataSource.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        "SELECT u.user_id, up.password, up.password_date " +
-                                "FROM user u join user_password up ON u.user_id = up.user_id " +
-                                "WHERE u.username = ? AND u.status = 'A'"
-                )
-        ){
-            boolean success = false;
-            ps.setString(1, username);
-            try(ResultSet rs = ps.executeQuery()){
-                if (rs.next()){
-                    String dbPassword = rs.getString(2);
-                    if (BCrypt.checkpw(password, dbPassword)){
-                        success = true;
-                    }
-                } else {
-                    //We hash the password anyway to stall a bit of time
-                    BCrypt.hashpw(password, BCrypt.gensalt());
-                }
-            }
-            if(success) {
-                result.put("result", "success");
-            } else {
-                result.put("result", "failure");
-                result.put("message", "Incorrect username or password");
-            }
-        }catch (SQLException e) {
-            logger.error("Error when processing login - {}", e.getMessage(), e);
+        boolean success = false;
+        int userId = userService.login(username, password);
+        if(userId != UserService.INVALID_USER) {
+            result.put("result", "success");
+        } else {
             result.put("result", "failure");
-            result.put("message", "System Error");
+            result.put("message", "Incorrect username or password");
         }
         return result;
     }
+
 }
