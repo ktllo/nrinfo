@@ -26,8 +26,14 @@ public class NetworkRailDataLoadService {
 
     public static final String URL_CORPUS = "https://publicdatafeeds.networkrail.co.uk/ntrod/SupportingFileAuthenticate?type=CORPUS";
     public static final String URL_SMART = "https://publicdatafeeds.networkrail.co.uk/ntrod/SupportingFileAuthenticate?type=SMART";
+
+    public static final String URL_CIF_ALL_FULL_DAILY = "https://publicdatafeeds.networkrail.co.uk/ntrod/CifFileAuthenticate?type=CIF_ALL_FULL_DAILY&day=toc-full";
+
     @Autowired
     private NetworkRailApiRequestService networkRailApiRequestService;
+
+    @Autowired
+    private NetworkRailScheduleLoadService networkRailScheduleLoadService;
 
     @Autowired
     private CorpusDao corpusDao;
@@ -43,6 +49,8 @@ public class NetworkRailDataLoadService {
                 return NetworkRailDataLoadService.class.getDeclaredMethod("loadSMART", UUID.class);
             } else if (type.equalsIgnoreCase("ERROR")) {
                 return NetworkRailDataLoadService.class.getDeclaredMethod("errorJob", UUID.class);
+            } else if (type.equalsIgnoreCase("SCHEDULE")) {
+                return NetworkRailDataLoadService.class.getDeclaredMethod("loadAllSchedules", UUID.class);
             }
         } catch (NoSuchMethodException e) {
             logger.error("Unable to find declared method - {}", e.getMessage(), e);
@@ -108,6 +116,27 @@ public class NetworkRailDataLoadService {
             //Load into database
             smartDao.truncateTable();
             smartDao.addAll(smartList);
+        }
+    }
+
+    public void loadAllSchedules(UUID jobUUID) {
+        logger.info("Loading all schedules from Network Rail");
+        try {
+            networkRailApiRequestService.sendRequestGZippedWithCallback(
+                    URL_CIF_ALL_FULL_DAILY,
+                    networkRailScheduleLoadService,
+                    NetworkRailScheduleLoadService.class.getDeclaredMethod(
+                            "processDataLine",
+                            String.class
+                    ),
+                    true
+            );
+        } catch (IOException e) {
+            logger.error("Unable to download full schedule - {}", e.getMessage(), e);
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            logger.error("Unable to find declared method - {}", e.getMessage(), e);
+            throw new RuntimeException(e);
         }
     }
 

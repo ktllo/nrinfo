@@ -6,9 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
 import java.net.URI;
@@ -97,6 +97,52 @@ public class NetworkRailApiRequestService {
 
     public byte[] sendRequestBinary(String url) throws IOException {
         return sendRequestBinary(url, true);
+    }
+
+
+    public void sendRequestGZippedWithCallback(String url, Object callbackClass, Method callbackMethod, boolean exitOnError) throws IOException {
+        HttpClient client = HttpClient.newBuilder()
+                .authenticator(new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(
+                                configurationService.getConfiguration("networkrail.username"),
+                                configurationService.getConfiguration("networkrail.password").toCharArray()
+                        );
+                    }
+                })
+                .followRedirects(HttpClient.Redirect.ALWAYS)
+                .build();
+        try{
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .build();
+           HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+           byte[] bytes = response.body();
+           logger.info("{} bytes received", bytes.length);
+           if (response.statusCode() != 200) {
+               throw new RuntimeException("Response status code "+response.statusCode());
+           }
+           try (BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new ByteArrayInputStream(bytes))))) {
+               while(true) {
+                    String line = br.readLine();
+                    if (line == null) {
+                        break;
+                    }
+                    try {
+                        callbackMethod.invoke(callbackClass, line);
+                    } catch (Exception e) {
+                        logger.error("Error when invoking callback - {}", e.getMessage(), e);
+                        if (exitOnError) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+               }
+           }
+        } catch (InterruptedException e) {
+            logger.error("Request interrupted", e);
+            throw new RuntimeException(e);
+        }
     }
 
 }
