@@ -14,7 +14,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.UUID;
+import java.util.*;
 
 @Component
 public class ScheduleAssociationDao extends BaseDao {
@@ -74,6 +74,112 @@ public class ScheduleAssociationDao extends BaseDao {
         }
     }
 
+    public void insertOrUpdateScheduleAssociation(ArrayList<ScheduleAssociation> scheduleAssociations) {
+        try (
+            Connection connection = dataSource.getConnection();
+            PreparedStatement ins = connection.prepareStatement(
+                    "INSERT INTO schedule_assoc (" +
+                            "uuid, main_train_uid, assoc_train_uid, start_date, end_date, " +
+                            "assoc_days, category, assoc_day_diff, location, main_location_suffix, " +
+                            "assoc_location_suffix, diagram_type, stp_indicator, last_update" +
+                            ") VALUES (" +
+                            "?,?,?,?,?," +
+                            "?,?,?,?,?," +
+                            "?,?,?,NOW()" +
+                            ")");
+            PreparedStatement psUpd = connection.prepareStatement(
+                    "UPDATE schedule_assoc SET " +
+                            "assoc_days = ?, category = ?, assoc_day_diff = ?, location=?, main_location_suffix=?, " +
+                            "assoc_location_suffix=?, diagram_type = ?, last_update=NOW()" +
+                            "WHERE " +
+                            "main_train_uid = ? " +
+                            "and assoc_train_uid = ? " +
+                            "and stp_indicator = ? " +
+                            "and start_date = ? " +
+                            "and end_date = ?")
+        ){
+            connection.setAutoCommit(false);
+            HashSet<PrimaryKey> primaryKeys = new HashSet<>();
+            int ic=0,uc=0;
+            for (ScheduleAssociation scheduleAssociation : scheduleAssociations) {
+                ScheduleAssociation existingScheduleAssociation = getScheduleAssociation(
+                        scheduleAssociation.getMainTrainUID(),
+                        scheduleAssociation.getAssocTrainUID(),
+                        scheduleAssociation.getStpIndicator(),
+                        scheduleAssociation.getAssocStartDate(),
+                        scheduleAssociation.getAssocEndDate()
+                );
+                if (existingScheduleAssociation == null) {
+                    PrimaryKey pk = new PrimaryKey(
+                            scheduleAssociation.getMainTrainUID(),
+                            scheduleAssociation.getAssocTrainUID(),
+                            scheduleAssociation.getAssocStartDate(),
+                            scheduleAssociation.getAssocEndDate(),
+                            scheduleAssociation.getStpIndicator()
+                    );
+                    if (primaryKeys.contains(pk)) {
+                        logger.info("Duplicate entry found. 2nd entry will be skipped");
+                        continue;
+                    }
+                    primaryKeys.add(pk);
+                    ins.setString(1, UUID.randomUUID().toString());
+                    ins.setString(2, scheduleAssociation.getMainTrainUID());
+                    ins.setString(3, scheduleAssociation.getAssocTrainUID());
+                    setDate(ins, 4, scheduleAssociation.getAssocStartDate());
+                    setDate(ins, 5, scheduleAssociation.getAssocEndDate());
+                    ins.setString(6, scheduleAssociation.getAssocDays());
+                    if(scheduleAssociation.getAssociationType()!=null) {
+                        ins.setString(7, scheduleAssociation.getAssociationType().getCode());
+                    } else {
+                        ins.setString(7, " ");
+                    }
+                    ins.setInt(8, scheduleAssociation.getDateIndicator());
+                    ins.setString(9, scheduleAssociation.getLocation());
+                    ins.setString(10, scheduleAssociation.getBaseLocationSuffix());
+                    ins.setString(11, scheduleAssociation.getAssocLocationSuffix());
+                    ins.setString(12, scheduleAssociation.getDiagramType());
+                    if(scheduleAssociation.getStpIndicator()!=null) {
+                        ins.setString(13, scheduleAssociation.getStpIndicator().getCode());
+                    } else {
+                        ins.setString(13, " ");
+                    }
+                    ins.addBatch();
+                    ic++;
+                } else if (!existingScheduleAssociation.equals(scheduleAssociation)) {
+                    psUpd.setString(1, scheduleAssociation.getAssocDays());
+                    if(scheduleAssociation.getAssociationType()!=null) {
+                        psUpd.setString(2, scheduleAssociation.getAssociationType().getCode());
+                    } else {
+                        psUpd.setString(2, " ");
+                    }
+                    psUpd.setInt(3, scheduleAssociation.getDateIndicator());
+                    psUpd.setString(4, scheduleAssociation.getLocation());
+                    psUpd.setString(5, scheduleAssociation.getBaseLocationSuffix());
+                    psUpd.setString(6, scheduleAssociation.getAssocLocationSuffix());
+                    psUpd.setString(7, scheduleAssociation.getDiagramType());
+                    psUpd.setString(8, scheduleAssociation.getMainTrainUID());
+                    psUpd.setString(9, scheduleAssociation.getAssocTrainUID());
+                    if (scheduleAssociation.getStpIndicator()!=null) {
+                        psUpd.setString(10, scheduleAssociation.getStpIndicator().getCode());
+                    } else {
+                        psUpd.setString(10, " ");
+                    }
+                    setDate(psUpd, 11, scheduleAssociation.getAssocStartDate());
+                    setDate(psUpd, 12, scheduleAssociation.getAssocEndDate());
+                    psUpd.addBatch();
+                }
+            }
+            ins.executeBatch();
+            psUpd.executeBatch();
+            connection.commit();
+            logger.info("Inserted {} and updated {} associations", ic, uc);
+
+        } catch (SQLException e) {
+            logger.error("Unable to insert schedule association - {}", e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+
     private void insertRecord(ScheduleAssociation scheduleAssociation) {
         try (
                 Connection connection = dataSource.getConnection();
@@ -121,24 +227,6 @@ public class ScheduleAssociationDao extends BaseDao {
     public void updateScheduleAssociation(ScheduleAssociation scheduleAssociation) {
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement psBku = connection.prepareStatement(
-                        "INSERT INTO schedule_assoc_history (" +
-                                "uuid, valid_from, valid_to, main_train_uid, assoc_train_uid, " +
-                                "start_date, end_date, assoc_days, category, assoc_day_diff, " +
-                                "location, main_location_suffix, assoc_location_suffix, diagram_type, stp_indicator) " +
-                                "SELECT " +
-                                "uuid, last_update, NOW(), main_train_uid, assoc_train_uid, " +
-                                "start_date, end_date, assoc_days, category, assoc_day_diff, " +
-                                "location, main_location_suffix, assoc_location_suffix, diagram_type, stp_indicator " +
-                                "from " +
-                                "schedule_assoc as sa " +
-                                "WHERE " +
-                                "main_train_uid = ? " +
-                                "and assoc_train_uid = ? " +
-                                "and stp_indicator = ?" +
-                                "and start_date = ?" +
-                                "and end_date = ?"
-                );
                 PreparedStatement psUpd = connection.prepareStatement(
                         "UPDATE schedule_assoc SET " +
                                 "assoc_days = ?, category = ?, assoc_day_diff = ?, location=?, main_location_suffix=?, " +
@@ -146,17 +234,11 @@ public class ScheduleAssociationDao extends BaseDao {
                                 "WHERE " +
                                 "main_train_uid = ? " +
                                 "and assoc_train_uid = ? " +
-                                "and stp_indicator = ?" +
-                                "and start_date = ?" +
+                                "and stp_indicator = ? " +
+                                "and start_date = ? " +
                                 "and end_date = ?"
                 )
         ) {
-            psBku.setString(1, scheduleAssociation.getMainTrainUID());
-            psBku.setString(2, scheduleAssociation.getAssocTrainUID());
-            psBku.setString(3, scheduleAssociation.getStpIndicator().getCode());
-            setDate(psBku, 4, scheduleAssociation.getAssocStartDate());
-            setDate(psBku, 5, scheduleAssociation.getAssocEndDate());
-            psBku.executeUpdate();
             psUpd.setString(1, scheduleAssociation.getAssocDays());
             if(scheduleAssociation.getAssociationType()!=null) {
                 psUpd.setString(2, scheduleAssociation.getAssociationType().getCode());
@@ -200,5 +282,33 @@ public class ScheduleAssociationDao extends BaseDao {
         sa.setStpIndicator(ScheduleIndicator.fromCode(rs.getString("stp_indicator")));
 
         return sa;
+    }
+
+    private class PrimaryKey {
+
+        String mainTrainUID;
+        String assocTrainUID;
+        Date assocStartDate;
+        Date assocEndDate;
+        ScheduleIndicator stpIndicator;
+
+        public PrimaryKey(String mainTrainUID, String assocTrainUID, Date assocStartDate, Date assocEndDate, ScheduleIndicator stpIndicator) {
+            this.mainTrainUID = mainTrainUID;
+            this.assocTrainUID = assocTrainUID;
+            this.assocStartDate = assocStartDate;
+            this.assocEndDate = assocEndDate;
+            this.stpIndicator = stpIndicator;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof PrimaryKey that)) return false;
+            return Objects.equals(mainTrainUID, that.mainTrainUID) && Objects.equals(assocTrainUID, that.assocTrainUID) && Objects.equals(assocStartDate, that.assocStartDate) && Objects.equals(assocEndDate, that.assocEndDate) && stpIndicator == that.stpIndicator;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(mainTrainUID, assocTrainUID, assocStartDate, assocEndDate, stpIndicator);
+        }
     }
 }

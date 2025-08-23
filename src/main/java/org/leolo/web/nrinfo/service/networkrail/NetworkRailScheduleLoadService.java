@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.leolo.web.nrinfo.dao.networkrail.ScheduleAssociationDao;
 import org.leolo.web.nrinfo.dao.networkrail.TiplocDao;
-import org.leolo.web.nrinfo.model.networkrail.schedule.JsonAssociationV1Message;
-import org.leolo.web.nrinfo.model.networkrail.schedule.TiplocV1Message;
-import org.leolo.web.nrinfo.model.networkrail.schedule.TransactionType;
+import org.leolo.web.nrinfo.model.networkrail.schedule.*;
 import org.leolo.web.nrinfo.service.ConfigurationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 
 @Service
 public class NetworkRailScheduleLoadService {
@@ -37,6 +36,44 @@ public class NetworkRailScheduleLoadService {
 
     @Autowired
     private ScheduleAssociationDao scheduleAssociationDao;
+
+    public void processDataLine(ArrayList<String> lines)  throws Exception {
+        ArrayList<TiplocV1Message> tiplocs = new ArrayList<>();
+        ArrayList<JsonAssociationV1Message> associations = new ArrayList<>();
+        ArrayList<JsonScheduleV1Message> schedules = new ArrayList<>();
+        for (String line : lines) {
+            JsonNode node = mapper.readTree(line);
+            String messageType = node.fieldNames().next();
+            if (messageType.equals("JsonTimetableV1")) {
+                logger.warn("JsonTimetableV1 is currently ignored");
+            } else if (messageType.equals("TiplocV1")) {
+                if ( "true".equalsIgnoreCase(configurationService.getConfiguration("dataload.networkrail.schedule.tiploc","false"))) {
+                    tiplocs.add(mapper.convertValue(node.get("TiplocV1"), TiplocV1Message.class));
+                }
+            } else if (messageType.equals("JsonAssociationV1")) {
+                if ( "true".equalsIgnoreCase(configurationService.getConfiguration("dataload.networkrail.schedule.association","false"))) {
+                    associations.add(mapper.convertValue(node.get("JsonAssociationV1"), JsonAssociationV1Message.class));
+                }
+            } else if (messageType.equals("JsonScheduleV1")) {
+                if ( "true".equalsIgnoreCase(configurationService.getConfiguration("dataload.networkrail.schedule.schedule","false"))) {
+                    schedules.add(mapper.convertValue(node.get("JsonScheduleV1"), JsonScheduleV1Message.class));
+                }
+            } else if (messageType.equals("EOF")) {
+                // Type EOF can be ignored
+            } else {
+                throw new RuntimeException("Message type " + messageType + " is not implemented");
+            }
+        }
+        if (!tiplocs.isEmpty()) {
+            processTiplocV1(tiplocs);
+        }
+        if (!associations.isEmpty()) {
+            processJsonAssociationV1(associations);
+        }
+        if (!schedules.isEmpty()) {
+            logger.info("There are {} schedules", schedules.size());
+        }
+    }
 
     public void processDataLine(String dataLine) throws Exception{
         JsonNode node = mapper.readTree(dataLine);
@@ -75,6 +112,21 @@ public class NetworkRailScheduleLoadService {
         }
     }
 
+    private void processTiplocV1(ArrayList<TiplocV1Message> messages) throws Exception{
+        ArrayList<Tiploc> insertOrUpdate = new ArrayList<>();
+        ArrayList<Tiploc> delete = new ArrayList<>();
+        for (TiplocV1Message message : messages) {
+            if (message.getTransactionType() == TransactionType.CREATE || message.getTransactionType() == TransactionType.UPDATE) {
+                insertOrUpdate.add(message.toTiploc());
+            } else if (message.getTransactionType() == TransactionType.DELETE) {
+                throw new RuntimeException("Not Implemented");
+            }
+        }
+        tiplocDao.insertOrUpdate(insertOrUpdate);
+
+
+    }
+
     private void processJsonAssociationV1(JsonAssociationV1Message message) throws Exception{
         if (message.getTransactionType() == TransactionType.CREATE) {
             scheduleAssociationDao.insertOrUpdateScheduleAssociation(message.toScheduleAssociation());
@@ -83,6 +135,18 @@ public class NetworkRailScheduleLoadService {
         } else if (message.getTransactionType() == TransactionType.DELETE) {
             throw new RuntimeException("Not Implemented");
         }
+    }
+
+    private void processJsonAssociationV1(ArrayList<JsonAssociationV1Message> messages) throws Exception{
+        ArrayList<ScheduleAssociation> insertOrUpdate = new ArrayList<>();
+        for (JsonAssociationV1Message message : messages) {
+            if (message.getTransactionType() == TransactionType.CREATE || message.getTransactionType() == TransactionType.UPDATE) {
+                insertOrUpdate.add(message.toScheduleAssociation());
+            } else if (message.getTransactionType() == TransactionType.DELETE) {
+                throw new RuntimeException("Not Implemented");
+            }
+        }
+        scheduleAssociationDao.insertOrUpdateScheduleAssociation(insertOrUpdate);
     }
 
 }

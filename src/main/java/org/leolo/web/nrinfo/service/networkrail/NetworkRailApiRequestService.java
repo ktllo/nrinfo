@@ -15,6 +15,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.zip.GZIPInputStream;
 
 @Component
@@ -99,8 +100,11 @@ public class NetworkRailApiRequestService {
         return sendRequestBinary(url, true);
     }
 
-
     public void sendRequestGZippedWithCallback(String url, Object callbackClass, Method callbackMethod, boolean exitOnError) throws IOException {
+        sendRequestGZippedWithCallback(url, callbackClass, callbackMethod, exitOnError, 100);
+    }
+
+    public void sendRequestGZippedWithCallback(String url, Object callbackClass, Method callbackMethod, boolean exitOnError, final int BATCH_SIZE) throws IOException {
         HttpClient client = HttpClient.newBuilder()
                 .authenticator(new Authenticator() {
                     @Override
@@ -124,19 +128,35 @@ public class NetworkRailApiRequestService {
                throw new RuntimeException("Response status code "+response.statusCode());
            }
            try (BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new ByteArrayInputStream(bytes))))) {
+               ArrayList<String> callbackBuffer = new ArrayList<>();
                while(true) {
-                    String line = br.readLine();
-                    if (line == null) {
-                        break;
-                    }
-                    try {
-                        callbackMethod.invoke(callbackClass, line);
-                    } catch (Exception e) {
-                        logger.error("Error when invoking callback - {}", e.getMessage(), e);
-                        if (exitOnError) {
-                            throw new RuntimeException(e);
-                        }
-                    }
+                   String line = br.readLine();
+                   if (line == null) {
+                       break;
+                   }
+                   callbackBuffer.add(line);
+                   if (callbackBuffer.size() >= BATCH_SIZE) {
+                       try {
+                           logger.info("Sending a batch of {} records", callbackBuffer.size());
+                           callbackMethod.invoke(callbackClass, callbackBuffer);
+                       } catch (Exception e) {
+                           logger.error("Error when invoking callback - {}", e.getMessage(), e);
+                           if (exitOnError) {
+                               throw new RuntimeException(e);
+                           }
+                       }
+                       callbackBuffer.clear();
+                   }
+               }
+
+               try {
+                   logger.info("Sending a batch of {} records", callbackBuffer.size());
+                   callbackMethod.invoke(callbackClass, callbackBuffer);
+               } catch (Exception e) {
+                   logger.error("Error when invoking callback - {}", e.getMessage(), e);
+                   if (exitOnError) {
+                       throw new RuntimeException(e);
+                   }
                }
            }
         } catch (InterruptedException e) {
