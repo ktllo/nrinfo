@@ -7,6 +7,7 @@ import org.leolo.web.nrinfo.dao.networkrail.CorpusDao;
 import org.leolo.web.nrinfo.dao.networkrail.SmartDao;
 import org.leolo.web.nrinfo.model.networkrail.Corpus;
 import org.leolo.web.nrinfo.model.networkrail.Smart;
+import org.leolo.web.nrinfo.service.ConfigurationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,8 +28,17 @@ public class NetworkRailDataLoadService {
 
     public static final String URL_CORPUS = "https://publicdatafeeds.networkrail.co.uk/ntrod/SupportingFileAuthenticate?type=CORPUS";
     public static final String URL_SMART = "https://publicdatafeeds.networkrail.co.uk/ntrod/SupportingFileAuthenticate?type=SMART";
+
+    public static final String URL_CIF_ALL_FULL_DAILY = "https://publicdatafeeds.networkrail.co.uk/ntrod/CifFileAuthenticate?type=CIF_ALL_FULL_DAILY&day=toc-full";
+
     @Autowired
     private NetworkRailApiRequestService networkRailApiRequestService;
+
+    @Autowired
+    private NetworkRailScheduleLoadService networkRailScheduleLoadService;
+
+    @Autowired
+    private ConfigurationService configurationService;
 
     @Autowired
     private CorpusDao corpusDao;
@@ -43,6 +54,8 @@ public class NetworkRailDataLoadService {
                 return NetworkRailDataLoadService.class.getDeclaredMethod("loadSMART", UUID.class);
             } else if (type.equalsIgnoreCase("ERROR")) {
                 return NetworkRailDataLoadService.class.getDeclaredMethod("errorJob", UUID.class);
+            } else if (type.equalsIgnoreCase("SCHEDULE")) {
+                return NetworkRailDataLoadService.class.getDeclaredMethod("loadAllSchedules", UUID.class);
             }
         } catch (NoSuchMethodException e) {
             logger.error("Unable to find declared method - {}", e.getMessage(), e);
@@ -108,6 +121,28 @@ public class NetworkRailDataLoadService {
             //Load into database
             smartDao.truncateTable();
             smartDao.addAll(smartList);
+        }
+    }
+
+    public void loadAllSchedules(UUID jobUUID) {
+        logger.info("Loading all schedules from Network Rail");
+        try {
+            networkRailApiRequestService.sendRequestGZippedWithCallback(
+                    URL_CIF_ALL_FULL_DAILY,
+                    networkRailScheduleLoadService,
+                    NetworkRailScheduleLoadService.class.getDeclaredMethod(
+                            "processDataLine",
+                            ArrayList.class
+                    ),
+                    true,
+                    Integer.parseInt(configurationService.getConfiguration("dataload.networkrail.schedule.batch_size"))
+            );
+        } catch (IOException e) {
+            logger.error("Unable to download full schedule - {}", e.getMessage(), e);
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            logger.error("Unable to find declared method - {}", e.getMessage(), e);
+            throw new RuntimeException(e);
         }
     }
 

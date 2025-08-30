@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Date;
 
 public class BaseDao {
 
@@ -31,6 +32,14 @@ public class BaseDao {
             ps.setNull(pos, Types.INTEGER);
         } else {
             ps.setInt(pos, data);
+        }
+    }
+
+    protected void setDate(PreparedStatement ps, int pos, java.util.Date data) throws SQLException {
+        if (data == null) {
+            ps.setNull(pos, Types.DATE);
+        } else {
+            ps.setDate(pos, new java.sql.Date(data.getTime()));
         }
     }
 }
