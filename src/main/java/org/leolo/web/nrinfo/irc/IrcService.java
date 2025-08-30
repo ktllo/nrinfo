@@ -281,8 +281,10 @@ public class IrcService extends ListenerAdapter {
             bot.sendIRC().message(ircConfigurationService.getMainChannel(), message);
         }
     }
-
-    public synchronized void start() {
+    public void start() {
+        new Thread(this::_start).start();
+    }
+    private synchronized void _start() {
         if (!ircConfigurationService.isEnabled()) {
             logger.debug("IRC bot is disabled");
             return;

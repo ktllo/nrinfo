@@ -3,12 +3,14 @@ package org.leolo.web.nrinfo.service.networkrail;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.leolo.web.nrinfo.dao.networkrail.ScheduleAssociationDao;
+import org.leolo.web.nrinfo.dao.networkrail.ScheduleDao;
 import org.leolo.web.nrinfo.dao.networkrail.TiplocDao;
 import org.leolo.web.nrinfo.model.networkrail.schedule.*;
 import org.leolo.web.nrinfo.service.ConfigurationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -36,6 +38,9 @@ public class NetworkRailScheduleLoadService {
 
     @Autowired
     private ScheduleAssociationDao scheduleAssociationDao;
+
+    @Autowired private ScheduleDao scheduleDao;
+
 
     public void processDataLine(ArrayList<String> lines)  throws Exception {
         ArrayList<TiplocV1Message> tiplocs = new ArrayList<>();
@@ -71,7 +76,7 @@ public class NetworkRailScheduleLoadService {
             processJsonAssociationV1(associations);
         }
         if (!schedules.isEmpty()) {
-            logger.info("There are {} schedules", schedules.size());
+            processJsonScheduleV1(schedules);
         }
     }
 
@@ -139,14 +144,41 @@ public class NetworkRailScheduleLoadService {
 
     private void processJsonAssociationV1(ArrayList<JsonAssociationV1Message> messages) throws Exception{
         ArrayList<ScheduleAssociation> insertOrUpdate = new ArrayList<>();
+        ArrayList<ScheduleAssociation> delete = new ArrayList<>();
         for (JsonAssociationV1Message message : messages) {
             if (message.getTransactionType() == TransactionType.CREATE || message.getTransactionType() == TransactionType.UPDATE) {
                 insertOrUpdate.add(message.toScheduleAssociation());
             } else if (message.getTransactionType() == TransactionType.DELETE) {
-                throw new RuntimeException("Not Implemented");
+                delete.add(message.toScheduleAssociation());
             }
         }
-        scheduleAssociationDao.insertOrUpdateScheduleAssociation(insertOrUpdate);
+        if (!insertOrUpdate.isEmpty()) {
+            scheduleAssociationDao.insertOrUpdateScheduleAssociation(insertOrUpdate);
+        }
+        if (!delete.isEmpty()) {
+            scheduleAssociationDao.deleteAssociations(delete);
+        }
+    }
+
+    private void processJsonScheduleV1(ArrayList<JsonScheduleV1Message> messages) throws Exception{
+        ArrayList<Schedule> insert = new ArrayList<>();
+        ArrayList<Schedule> update = new ArrayList<>();
+        ArrayList<Schedule> delete = new ArrayList<>();
+        for (JsonScheduleV1Message message : messages) {
+            if (message.getTransactionType() == TransactionType.CREATE) {
+                insert.add(message.toSchedule());
+            } else if (message.getTransactionType() == TransactionType.UPDATE) {
+                throw new RuntimeException("Not Implemented");
+            } else if (message.getTransactionType() == TransactionType.DELETE) {
+                delete.add(message.toSchedule());
+            }
+        }
+        if (!insert.isEmpty()) {
+            scheduleDao.insertSchedule(insert);
+        }
+        if (!delete.isEmpty()) {
+            scheduleDao.deleteSchedules(delete);
+        }
     }
 
 }

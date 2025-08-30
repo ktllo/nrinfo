@@ -284,6 +284,13 @@ public class ScheduleAssociationDao extends BaseDao {
         return sa;
     }
 
+    public void deleteAssociations(Collection<ScheduleAssociation> scheduleAssociations) {
+        int deleteCount = 0;
+        try (Connection connection = dataSource.getConnection()) {
+
+        }
+    }
+
     private class PrimaryKey {
 
         String mainTrainUID;

@@ -47,4 +47,60 @@ public class JsonScheduleV1Message {
 
     @JsonProperty("new_schedule_segment") private NewScheduleSegmentMessage newScheduleSegment;
 
+    public Schedule toSchedule() {
+        Schedule schedule = new Schedule();
+        schedule.setTrainUID(cifTrainUid);
+        schedule.setStartDate(scheduleStartDate);
+        schedule.setEndDate(scheduleEndDate);
+        schedule.setDaysRuns(scheduleDaysRuns);
+        schedule.setRunsOnBankHolidays(bankHolidayRunning);
+        schedule.setTrainStatus(trainStatus);
+        schedule.setStpIndicator(stpIndicator);
+        schedule.setAtocCode(atocCode);
+        schedule.setSubjectToPerformanceMonitor("Y".equalsIgnoreCase(applicableTimetable));
+
+        // Dig into schedule segment
+        schedule.setTrainCategory(scheduleSegment.getTrainCategory());
+        schedule.setSignallingHeadCode(scheduleSegment.getSignallingId());
+        schedule.setReservationSystemHeadCode(scheduleSegment.getHeadcode());
+        schedule.setTrainServiceCode(scheduleSegment.getServiceCode());
+        //This field had been repurposed
+        schedule.setPortionId(scheduleSegment.getBusinessSector());
+        schedule.setPowerType(scheduleSegment.getPowerType());
+        schedule.setTimingLoad(scheduleSegment.getTimingLoad());
+        if (scheduleSegment.getSpeed() != null) {
+            schedule.setPlannedSpeed(Integer.parseInt(scheduleSegment.getSpeed()));
+        } else {
+            schedule.setPlannedSpeed(0);
+        }
+        schedule.setOperatingCharacteristics(scheduleSegment.getOperatingCharacteristics());
+        schedule.setHasFirstClass(!"S".equalsIgnoreCase(scheduleSegment.getTrainClass()));
+        schedule.setSleeper(scheduleSegment.getSleepers());
+        schedule.setReservations(scheduleSegment.getReservations());
+        schedule.setCatering(scheduleSegment.getCateringCode());
+
+        if (scheduleSegment.getScheduleLocation() != null) {
+            //Now into each entry
+            for (ScheduleLocationMessage slm : scheduleSegment.getScheduleLocation()) {
+                ScheduleEntry se = new ScheduleEntry();
+                se.setLocation(slm.getTiplocCode());
+                se.setLocationInstance(slm.getTiplocInstance());
+                se.setWttArrival(ScheduleUtil.parseTime(slm.getArrival()));
+                se.setWttPass(ScheduleUtil.parseTime(slm.getPass()));
+                se.setWttDeparture(ScheduleUtil.parseTime(slm.getDeparture()));
+                se.setGbttArrival(ScheduleUtil.parseTime(slm.getPublicArrival()));
+                se.setGbttDeparture(ScheduleUtil.parseTime(slm.getPublicDeparture()));
+                se.setPlatform(slm.getPlatform());
+                se.setLine(slm.getLine());
+                se.setPath(slm.getPath());
+                se.setEngineeringAllowance(ScheduleUtil.parseAllowance(slm.getEngineeringAllowance()));
+                se.setPathingAllowance(ScheduleUtil.parseAllowance(slm.getPathingAllowance()));
+                se.setPerformanceAllowance(ScheduleUtil.parseAllowance(slm.getPerformanceAllowance()));
+                schedule.getScheduleLocations().add(se);
+            }
+        }
+
+        return schedule;
+    }
+
 }
